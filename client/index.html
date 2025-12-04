@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // INTERCEPTAR VITE ANTES DE TUDO
+      (function() {
+        // Substituir console methods IMEDIATAMENTE
+        const originalMethods = {
+          log: console.log,
+          debug: console.debug,
+          info: console.info,
+          warn: console.warn,
+          error: console.error
+        };
+
+        ['log', 'debug', 'info', 'warn', 'error'].forEach(method => {
+          console[method] = function(...args) {
+            const message = args.join(' ').toLowerCase();
+            if (message.includes('[vite] connecting') || message.includes('vite') || 
+                message.includes('hmr') || message.includes('@vite/client') || 
+                message.includes('localhost:undefined')) {
+              return;
+            }
+            originalMethods[method].apply(console, args);
+          };
+        });
+
+        // Interceptar WebSocket
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = class extends OriginalWebSocket {
+          constructor(url, protocols) {
+            let urlStr = url.toString();
+            
+            // Corrigir qualquer URL que contenha localhost:undefined ou porta undefined
+            if (urlStr.includes('localhost:undefined') || urlStr.includes(':undefined') || 
+                urlStr.includes('wss://localhost:undefined') || urlStr.includes('ws://localhost:undefined')) {
+              
+              const currentHost = window.location.host; // Já inclui a porta (ex: domain.replit.dev)
+              const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+              
+              // Extrair parâmetros da URL original se existirem
+              let searchParams = '';
+              try {
+                const originalUrl = new URL(urlStr.replace('localhost:undefined', 'localhost:80'));
+                searchParams = originalUrl.search;
+              } catch (e) {
+                // Se não conseguir parsear, tentar extrair token manualmente
+                const tokenMatch = urlStr.match(/[?&]token=([^&]+)/);
+                if (tokenMatch) {
+                  searchParams = '?token=' + tokenMatch[1];
+                }
+              }
+              
+              // Construir URL correta usando o host atual do Replit
+              urlStr = protocol + '//' + currentHost + '/ws' + searchParams;
+            }
+            
+            return super(urlStr, protocols);
+          }
+        };
+
+        // Interceptar erros
+        window.addEventListener('unhandledrejection', function(event) {
+          const error = event.reason;
+          if (error && ((error.message || '').toLowerCase().includes('websocket') || 
+                       (error.stack || '').toLowerCase().includes('@vite/client'))) {
+            event.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          const message = (event.message || '').toLowerCase();
+          if (message.includes('websocket') || message.includes('localhost:undefined')) {
+            event.preventDefault();
+            return false;
+          }
+        }, true);
+      })();
+
+      // Detecta tamanho da tela instantaneamente antes do React renderizar
+      (function() {
+        const MOBILE_BREAKPOINT = 768;
+        const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+        document.body.classList.add(isMobile ? 'is-mobile' : 'is-desktop');
+        
+        // Atualiza classe quando a tela é redimensionada
+        window.addEventListener('resize', function() {
+          const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+          document.body.classList.toggle('is-mobile', isMobile);
+          document.body.classList.toggle('is-desktop', !isMobile);
+        });
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>

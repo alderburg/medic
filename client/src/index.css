@@ -1,0 +1,280 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  
+  .content-zoom-80 {
+    transform: scale(0.8);
+    transform-origin: top left;
+    width: 125%;
+    height: 125%;
+  }
+}
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(222.2, 84%, 4.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(222.2, 84%, 4.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(222.2, 84%, 4.9%);
+  --primary: hsl(221.2, 83.2%, 53.3%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(160, 84.3%, 39.4%);
+  --secondary-foreground: hsl(160, 100%, 96%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
+  --accent: hsl(210, 40%, 96%);
+  --accent-foreground: hsl(222.2, 84%, 4.9%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(214.3, 31.8%, 91.4%);
+  --input: hsl(214.3, 31.8%, 91.4%);
+  --ring: hsl(221.2, 83.2%, 53.3%);
+  --success: hsl(142.1, 76.2%, 36.3%);
+  --warning: hsl(47.9, 95.8%, 53.1%);
+  --error: hsl(0, 84.2%, 60.2%);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: hsl(222.2, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --card: hsl(222.2, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --popover: hsl(222.2, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --primary: hsl(217.2, 91.2%, 59.8%);
+  --primary-foreground: hsl(222.2, 84%, 4.9%);
+  --secondary: hsl(160, 84.3%, 39.4%);
+  --secondary-foreground: hsl(160, 100%, 96%);
+  --muted: hsl(217.2, 32.6%, 17.5%);
+  --muted-foreground: hsl(215, 20.2%, 65.1%);
+  --accent: hsl(217.2, 32.6%, 17.5%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217.2, 32.6%, 17.5%);
+  --input: hsl(217.2, 32.6%, 17.5%);
+  --ring: hsl(224.3, 76.3%, 94.0%);
+  --success: hsl(142.1, 76.2%, 36.3%);
+  --warning: hsl(47.9, 95.8%, 53.1%);
+  --error: hsl(0, 84.2%, 60.2%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: hidden; /* Evitar scroll horizontal */
+  }
+}
+
+/* Floating Animation Effects */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-5px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-30px) translateX(15px) rotate(1deg);
+  }
+}
+
+@keyframes float-medium {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-15px) translateX(-10px) rotate(-2deg);
+  }
+  66% {
+    transform: translateY(-25px) translateX(8px) rotate(1deg);
+  }
+}
+
+@keyframes float-fast {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  20% {
+    transform: translateY(-10px) translateX(5px) rotate(1deg);
+  }
+  40% {
+    transform: translateY(-20px) translateX(-8px) rotate(-1deg);
+  }
+  60% {
+    transform: translateY(-5px) translateX(12px) rotate(2deg);
+  }
+  80% {
+    transform: translateY(-25px) translateX(-3px) rotate(-1deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(20px) translateX(-10px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(10px) translateX(5px) rotate(1deg);
+  }
+  75% {
+    transform: translateY(30px) translateX(-15px) rotate(-1deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 8s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 10s ease-in-out infinite;
+}
+
+@layer utilities {
+  .mobile-container {
+    @apply max-w-md mx-auto bg-white min-h-screen shadow-xl;
+  }
+
+  .status-taken {
+    @apply bg-success/10 text-success;
+  }
+
+  .status-pending {
+    @apply bg-warning/10 text-warning;
+  }
+
+  .status-overdue {
+    @apply bg-error/10 text-error;
+  }
+
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--secondary) / 0.05) 100%);
+  }
+}
+
+/* Hide scrollbars but keep scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+/* Carousel scroll hide */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desabilitar hover effects em dispositivos touch/WebView */
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) {
+  a:hover {
+    color: #747bff;
+  }
+  button:hover {
+    border-color: #646cff;
+  }
+}
+
+/* Remover transições de hover em dispositivos móveis */
+@media (hover: none) or (pointer: coarse) {
+  * {
+    transition: none !important;
+  }
+
+  a, button, .hover\:text-slate-600, .hover\:bg-slate-50 {
+    transition: none !important;
+  }
+}
+
+/* Melhorar comportamento de scroll para WebView - solução específica */
+html {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Desabilitar elastic scroll apenas no WebView/mobile */
+@media (max-width: 768px) {
+  body {
+    overscroll-behavior-y: none;
+  }
+  
+  .mobile-container {
+    overscroll-behavior-y: none;
+  }
+  
+  /* Prevenir scroll nas telas de login/registro */
+  .login-page, .register-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* CSS específico para Expo WebView - detecta user agent */
+@supports (-webkit-touch-callout: none) {
+  html {
+    position: relative;
+    height: 100%;
+  }
+  
+  body {
+    position: relative;
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+  
+  /* Prevenir rubber band effect mantendo scroll */
+  .mobile-container {
+    position: relative;
+    min-height: 100vh;
+    overscroll-behavior: contain;
+  }
+}

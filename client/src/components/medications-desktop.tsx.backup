@@ -1,0 +1,498 @@
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ValidatedInput, ValidatedTextarea } from "@/components/ui/validated-input";
+import { Search, Plus, FileText, Edit2, Trash2, Calendar, Clock, User, Pill, ClipboardCheck, X, Save, BookOpen, Filter, Upload, Download, Image as ImageIcon, Activity, AlertCircle, CheckCircle, Timer, Settings, Eye, Users, TrendingUp, Target } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useFormValidation } from "@/hooks/use-form-validation";
+import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface Medication {
+  id: number;
+  name: string;
+  dosage: string;
+  frequency: string;
+  startDate: string;
+  endDate?: string;
+  notes?: string;
+  isActive: boolean;
+  schedules?: Array<{ time: string }>;
+}
+
+interface Prescription {
+  id: number;
+  title: string;
+  doctorName: string;
+  description: string;
+  prescriptionDate: string;
+  hasFile?: boolean;
+  fileOriginalName?: string;
+  fileType?: string;
+}
+
+interface MedicationLog {
+  id: number;
+  medicationId: number;
+  scheduledTime: string;
+  status: 'taken' | 'missed' | 'pending';
+  takenTime?: string;
+  notes?: string;
+  effectiveness?: number;
+  sideEffects?: string;
+}
+
+export default function MedicationsDesktop() {
+  const [, navigate] = useLocation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<'overview' | 'medications' | 'prescriptions' | 'history'>('overview');
+  const [medicationFilter, setMedicationFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [showAddMedicationForm, setShowAddMedicationForm] = useState(false);
+  const [showAddPrescriptionForm, setShowAddPrescriptionForm] = useState(false);
+  const [editingMedicationId, setEditingMedicationId] = useState<number | null>(null);
+  const [editingPrescriptionId, setEditingPrescriptionId] = useState<number | null>(null);
+  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch medications
+  const { data: medications = [], isLoading: medicationsLoading } = useQuery({
+    queryKey: ['medications'],
+    queryFn: () => apiRequest('/api/medications'),
+  });
+
+  // Fetch prescriptions
+  const { data: prescriptions = [], isLoading: prescriptionsLoading } = useQuery({
+    queryKey: ['prescriptions'],
+    queryFn: () => apiRequest('/api/prescriptions'),
+  });
+
+  // Fetch medication logs
+  const { data: medicationLogs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['medication-logs'],
+    queryFn: () => apiRequest('/api/medication-logs'),
+  });
+
+  // Fetch today's medications
+  const { data: todayMedications = [], isLoading: todayLoading } = useQuery({
+    queryKey: ['medication-logs', 'today'],
+    queryFn: () => apiRequest('/api/medication-logs/today'),
+  });
+
+  // Filter medications
+  const filteredMedications = Array.isArray(medications) ? medications.filter((medication: Medication) => {
+    const matchesSearch = medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         medication.dosage.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = medicationFilter === 'all' || 
+                         (medicationFilter === 'active' && medication.isActive) ||
+                         (medicationFilter === 'inactive' && !medication.isActive);
+    return matchesSearch && matchesFilter;
+  }) : [];
+
+  // Calculate statistics
+  const totalMedications = Array.isArray(medications) ? medications.length : 0;
+  const activeMedications = Array.isArray(medications) ? medications.filter((m: Medication) => m.isActive).length : 0;
+  const totalPrescriptions = Array.isArray(prescriptions) ? prescriptions.length : 0;
+  const todayTaken = Array.isArray(todayMedications) ? todayMedications.filter((log: any) => log.status === 'taken').length : 0;
+  const todayPending = Array.isArray(todayMedications) ? todayMedications.filter((log: any) => log.status === 'pending').length : 0;
+  const todayMissed = Array.isArray(todayMedications) ? todayMedications.filter((log: any) => log.status === 'missed').length : 0;
+  const adherenceRate = Array.isArray(todayMedications) && todayMedications.length > 0 ? Math.round((todayTaken / todayMedications.length) * 100) : 0;
+
+  // Get medication by ID
+  const getMedicationById = (id: number) => {
+    return Array.isArray(medications) ? medications.find((med: Medication) => med.id === id) : null;
+  };
+
+  // Render overview tab
+  const renderOverview = () => {
+    if (medicationsLoading || prescriptionsLoading || todayLoading) {
+      return (
+        <div className="space-y-6">
+          {/* Loading skeleton for stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Loading skeleton for today's medications */}
+          <Card>
+            <CardHeader>
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Medicamentos Ativos</p>
+                  <p className="text-2xl font-bold text-emerald-600">{activeMedications}</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Pill className="h-6 w-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Receitas Médicas</p>
+                  <p className="text-2xl font-bold text-blue-600">{totalPrescriptions}</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Hoje - Tomados</p>
+                  <p className="text-2xl font-bold text-green-600">{todayTaken}</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Aderência Hoje</p>
+                  <p className="text-2xl font-bold text-purple-600">{adherenceRate}%</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+      {/* Today's Medications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            Medicamentos de Hoje
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {todayLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+              ))}
+            </div>
+          ) : (!Array.isArray(todayMedications) || todayMedications.length === 0) ? (
+            <div className="text-center py-8 text-gray-500">
+              <Timer className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>Nenhum medicamento agendado para hoje</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {Array.isArray(todayMedications) && todayMedications.map((log: any) => {
+                const medication = getMedicationById(log.medicationId);
+                if (!medication) return null;
+
+                return (
+                  <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                        log.status === 'taken' ? 'bg-green-100' : 
+                        log.status === 'missed' ? 'bg-red-100' : 'bg-yellow-100'
+                      }`}>
+                        {log.status === 'taken' && <CheckCircle className="h-5 w-5 text-green-600" />}
+                        {log.status === 'missed' && <X className="h-5 w-5 text-red-600" />}
+                        {log.status === 'pending' && <Timer className="h-5 w-5 text-yellow-600" />}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{medication.name}</h3>
+                        <p className="text-sm text-gray-600">{medication.dosage}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {format(new Date(log.scheduledTime), 'HH:mm')}
+                      </p>
+                      <Badge variant={
+                        log.status === 'taken' ? 'default' : 
+                        log.status === 'missed' ? 'destructive' : 'secondary'
+                      }>
+                        {log.status === 'taken' ? 'Tomado' : 
+                         log.status === 'missed' ? 'Perdido' : 'Pendente'}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-emerald-600" />
+              Ações Rápidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              className="w-full justify-start gap-2" 
+              variant="outline"
+              onClick={() => setShowAddMedicationForm(true)}
+            >
+              <Pill className="h-4 w-4" />
+              Adicionar Medicamento
+            </Button>
+            <Button 
+              className="w-full justify-start gap-2" 
+              variant="outline"
+              onClick={() => setShowAddPrescriptionForm(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Adicionar Receita
+            </Button>
+            <Button 
+              className="w-full justify-start gap-2" 
+              variant="outline"
+              onClick={() => navigate('/reports')}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Ver Relatórios
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-purple-600" />
+              Resumo Semanal
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>Gráfico de aderência em desenvolvimento</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+  // Render medications tab
+  const renderMedications = () => (
+    <div className="space-y-6">
+      {/* Header with filters */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Pesquisar medicamentos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-80"
+            />
+          </div>
+          <Select value={medicationFilter} onValueChange={(value: any) => setMedicationFilter(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Ativos</SelectItem>
+              <SelectItem value="inactive">Inativos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => setShowAddMedicationForm(true)} className="bg-emerald-600 hover:bg-emerald-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Medicamento
+        </Button>
+      </div>
+
+      {/* Medications Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {medicationsLoading ? (
+          [...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : filteredMedications.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Pill className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-500">Nenhum medicamento encontrado</p>
+          </div>
+        ) : (
+          filteredMedications.map((medication: Medication) => (
+            <Card key={medication.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg">{medication.name}</h3>
+                    <p className="text-gray-600">{medication.dosage}</p>
+                  </div>
+                  <Badge variant={medication.isActive ? "default" : "secondary"}>
+                    {medication.isActive ? "Ativo" : "Inativo"}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    <span>{medication.frequency}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>{format(new Date(medication.startDate), 'dd/MM/yyyy')}</span>
+                  </div>
+                  {medication.schedules && medication.schedules.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-gray-400" />
+                      <span>{medication.schedules.map(s => s.time).join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setSelectedMedication(medication)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Detalhes
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setEditingMedicationId(medication.id)}
+                  >
+                    <Edit2 className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)} className="h-full">
+          <div className="border-b border-gray-200 px-6">
+            <TabsList className="h-12">
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Visão Geral
+              </TabsTrigger>
+              <TabsTrigger value="medications" className="flex items-center gap-2">
+                <Pill className="h-4 w-4" />
+                Medicamentos
+              </TabsTrigger>
+              <TabsTrigger value="prescriptions" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Receitas
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Histórico
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="p-6 overflow-auto">
+            <TabsContent value="overview" className="mt-0">
+              {renderOverview()}
+            </TabsContent>
+
+            <TabsContent value="medications" className="mt-0">
+              {renderMedications()}
+            </TabsContent>
+
+            <TabsContent value="prescriptions" className="mt-0">
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-500">Aba de receitas em desenvolvimento</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-0">
+              <div className="text-center py-12">
+                <ClipboardCheck className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-500">Aba de histórico em desenvolvimento</p>
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

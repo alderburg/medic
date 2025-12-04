@@ -1,0 +1,29 @@
+⚠️ Sistema antigo desativado - usando enterprise notifications
+🔍 Debug notifications: 
+Object {totalNotifications: 50, unreadCount: 50, summaryUnread: 0, calculatedUnread: 50, firstNotification: {…}, …}
+⚠️ Sistema antigo desativado - usando enterprise notifications
+🔌 [doctor] Joice Silva (ID: 17) logado na página /appointments, conectando WebSocket...
+🔍 Debug notifications: 
+Object {totalNotifications: 50, unreadCount: 50, summaryUnread: 0, calculatedUnread: 50, firstNotification: {…}, …}
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Verificando parâmetros URL: 
+Object {actionParam: null, tabParam: null, activeTab: "overview", showAddForm: false}
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Debug MedicalEvolutionForm - userProfileType: doctor
+🔍 Debug MedicalEvolutionForm - currentUser: undefined
+🔍 Debug MedicalEvolutionForm - currentUser?.name: undefined
+🔍 Debug MedicalEvolutionForm - currentUser?.crm: undefined
+🔍 Debug userProfileType DETALHADO (useAuth): 
+Object {userProfileType: "doctor", currentUser: {…}, profileType: "doctor", currentUserKeys: Array(12), currentUserString: "{"id":17,"email":"medico@meucuidador.com","name":"Joice…"}
+🔍 Debug MedicalEvolutionForm - userProfileType: doctor
+🔍 Debug MedicalEvolutionForm - currentUser: undefined
+🔍 Debug MedicalEvolutionForm - currentUser?.name: undefined
+🔍 Debug MedicalEvolutionForm - currentUser?.crm: undefined

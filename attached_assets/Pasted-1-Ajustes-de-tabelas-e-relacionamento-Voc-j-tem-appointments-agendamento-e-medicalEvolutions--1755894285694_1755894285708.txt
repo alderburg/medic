@@ -1,0 +1,74 @@
+1. Ajustes de tabelas e relacionamento
+
+Você já tem appointments (agendamento) e medicalEvolutions (evolução médica). Para seguir o fluxo ideal, sugiro incluir uma nova tabela para a Ficha de Atendimento, que será o núcleo do atendimento médico.
+
+Nova tabela: medicalEncounters (Ficha de Atendimento)
+
+id: serial - Chave primária  
+patientId: integer - ID do paciente  
+doctorId: integer - ID do médico  
+appointmentId: integer - ID da consulta relacionada (pode ser null para atendimentos avulsos)  
+startTime: timestamp - Data/hora de início do atendimento  
+endTime: timestamp - Data/hora de finalização (opcional)  
+summary: text - Resumo geral do atendimento  
+status: varchar(20) - Ex.: "in_progress", "completed"  
+createdAt: timestamp - Data de criação  
+updatedAt: timestamp - Data de atualização  
+
+
+Por que essa tabela?
+
+Ela centraliza tudo que aconteceu no atendimento.
+
+Permite vincular múltiplas ações (evolução, exames, prescrições, sinais vitais) a um único contexto.
+
+Atendimentos avulsos (sem agendamento) também podem ser registrados.
+
+2. Ajustes nas outras tabelas
+
+medicalEvolutions: manter, mas adicionar o campo encounterId (referência para medicalEncounters.id). Isso vincula a evolução ao atendimento quando aplicável.
+
+vitalSigns, exams, prescriptions: também devem ter um campo encounterId para relacionar os registros ao atendimento.
+
+Exemplo para vitalSigns:
+
+id  
+patientId  
+encounterId (opcional)  
+doctorId  
+bloodPressure  
+heartRate  
+weight  
+height  
+...  
+createdAt  
+
+3. Lógica de funcionamento
+
+Consulta agendada (appointments) é só o agendamento.
+
+Quando o médico inicia o atendimento, cria-se um registro em medicalEncounters.
+
+Dentro da ficha, o médico navega por abas: Evolução, Sinais Vitais, Exames, Receitas, Procedimentos.
+
+Cada aba salva nos módulos específicos, mas todos os registros levam também o encounterId para vinculação.
+
+Ao salvar a ficha, todos os dados ficam centralizados no atendimento e também disponíveis nas tabelas já existentes (bom para relatórios e histórico).
+
+4. Campos importantes que podem ser adicionados
+
+medicalEncounters.summary: resumo do que aconteceu no atendimento (útil para listagens rápidas).
+
+appointments.status: ampliar para incluir "in_progress", "completed", "canceled".
+
+medicalEvolutions: pode ganhar campos como followUpDate (data de retorno sugerido).
+
+5. Benefícios dessa abordagem
+
+Histórico completo do paciente organizado.
+
+Evolução médica pode ser feita sem agendamento (campo appointmentId null).
+
+Possibilidade de faturamento: cada encounter pode gerar um registro financeiro com os serviços/produtos aplicados.
+
+Escalável para integração com clínicas, convênios e telemedicina.
