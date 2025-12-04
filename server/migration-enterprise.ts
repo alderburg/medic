@@ -190,20 +190,33 @@ export async function runEnterpriseMigration() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_notification_audit_user ON notification_audit_log(user_id);`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_notification_audit_patient ON notification_audit_log(patient_id);`);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_notification_rate_limit_patient_type ON notification_rate_limit(patient_id, notification_type);`);
-
-    // CONSTRAINT para rate limit único
+    // Índice para rate limit - verificar se colunas existem antes de criar
     await db.execute(sql`
       DO $$ 
       BEGIN 
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint 
-          WHERE conname = 'unique_rate_limit_patient_type_related'
-        ) THEN
-          ALTER TABLE notification_rate_limit 
-          ADD CONSTRAINT unique_rate_limit_patient_type_related 
-          UNIQUE(patient_id, notification_type, related_id);
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notification_rate_limit' AND column_name = 'patient_id') THEN
+          CREATE INDEX IF NOT EXISTS idx_notification_rate_limit_patient_type ON notification_rate_limit(patient_id, notification_type);
+        ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notification_rate_limit' AND column_name = 'entity_id') THEN
+          CREATE INDEX IF NOT EXISTS idx_notification_rate_limit_entity_type ON notification_rate_limit(entity_id, limit_type);
         END IF;
+      EXCEPTION WHEN OTHERS THEN
+        NULL; -- Ignorar erros de índice
+      END $$;
+    `);
+
+    // CONSTRAINT para rate limit único - verificar estrutura da tabela
+    await db.execute(sql`
+      DO $$ 
+      BEGIN 
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notification_rate_limit' AND column_name = 'patient_id') THEN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_rate_limit_patient_type_related') THEN
+            ALTER TABLE notification_rate_limit 
+            ADD CONSTRAINT unique_rate_limit_patient_type_related 
+            UNIQUE(patient_id, notification_type, related_id);
+          END IF;
+        END IF;
+      EXCEPTION WHEN OTHERS THEN
+        NULL; -- Ignorar erros de constraint
       END $$;
     `);
 

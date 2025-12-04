@@ -332,6 +332,15 @@ const restorePatientContext = (req: any, res: any, next: any) => {
 export function registerRoutes() {
   const router = express.Router();
 
+  // Health check endpoint para Railway
+  router.get("/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      service: "MeuCuidador Enterprise"
+    });
+  });
+
   // ROTA ENTERPRISE: GET /notifications - API enterprise direta
   router.get("/notifications", authenticateToken, async (req: any, res) => {
     try {
