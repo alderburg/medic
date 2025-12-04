@@ -156,20 +156,28 @@ export async function runEnterpriseMigration() {
       ADD COLUMN IF NOT EXISTS processing_time_ms INTEGER;
     `);
 
-    // 6. NOTIFICATION RATE LIMIT
+    // 6. NOTIFICATION RATE LIMIT - verificar se tabela já existe com estrutura diferente
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS notification_rate_limit (
-        id SERIAL PRIMARY KEY,
-        patient_id INTEGER NOT NULL,
-        notification_type VARCHAR(50) NOT NULL,
-        related_id INTEGER,
-        last_notification_sent TIMESTAMPTZ,
-        notification_count INTEGER DEFAULT 0,
-        reset_time TIMESTAMPTZ,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      DO $$
+      BEGIN
+        -- Se a tabela não existir, criar com nova estrutura
+        IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notification_rate_limit') THEN
+          CREATE TABLE notification_rate_limit (
+            id SERIAL PRIMARY KEY,
+            patient_id INTEGER NOT NULL,
+            notification_type VARCHAR(50) NOT NULL,
+            related_id INTEGER,
+            last_notification_sent TIMESTAMPTZ,
+            notification_count INTEGER DEFAULT 0,
+            reset_time TIMESTAMPTZ,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          );
+        END IF;
+      EXCEPTION WHEN OTHERS THEN
+        NULL; -- Tabela já existe com estrutura diferente, ignorar
+      END $$;
     `);
 
     // ÍNDICES PARA PERFORMANCE
