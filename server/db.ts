@@ -2,13 +2,28 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
+import * as fs from 'fs';
 
-// Usar variável de ambiente DATABASE_URL (compatível com Railway, Heroku, Neon, etc.)
-const DATABASE_URL = process.env.DATABASE_URL;
+// Prioridade: RAILWAY_DATABASE_URL > DATABASE_URL (que não seja antiga)
+// Isso permite que o secret do Replit tenha prioridade sobre qualquer valor do workflow
+let DATABASE_URL = process.env.RAILWAY_DATABASE_URL || process.env.DATABASE_URL;
+
+// Se a DATABASE_URL contém o host antigo, ignorá-la
+if (DATABASE_URL && DATABASE_URL.includes('agendamedic.postgresql.dbaas.com.br')) {
+  console.log('⚠️ DATABASE_URL antiga detectada no workflow, ignorando...');
+  DATABASE_URL = process.env.RAILWAY_DATABASE_URL;
+}
 
 if (!DATABASE_URL) {
-  console.error('❌ DATABASE_URL não configurada. Configure a variável de ambiente DATABASE_URL.');
+  console.error('❌ DATABASE_URL não configurada ou inválida.');
+  console.error('💡 Configure RAILWAY_DATABASE_URL nos Secrets do Replit com a URL do seu banco PostgreSQL Railway.');
   process.exit(1);
+}
+
+// Log da conexão (sem expor a senha)
+const urlParts = DATABASE_URL.match(/postgresql:\/\/([^:]+):.*@([^:\/]+)/);
+if (urlParts) {
+  console.log(`🔌 Conectando ao banco: ${urlParts[2]} (usuário: ${urlParts[1]})`);
 }
 
 // Detectar se é Railway/ambiente de produção para configurar SSL
