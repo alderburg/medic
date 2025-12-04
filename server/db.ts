@@ -3,12 +3,22 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-// Use only Locaweb database configuration
-const DATABASE_URL = "postgresql://agendamedic:Dr19122010%40%40@agendamedic.postgresql.dbaas.com.br:5432/agendamedic";
+// Usar variável de ambiente DATABASE_URL (compatível com Railway, Heroku, Neon, etc.)
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ DATABASE_URL não configurada. Configure a variável de ambiente DATABASE_URL.');
+  process.exit(1);
+}
+
+// Detectar se é Railway/ambiente de produção para configurar SSL
+const isProduction = process.env.NODE_ENV === 'production' || 
+                     process.env.RAILWAY_ENVIRONMENT !== undefined ||
+                     DATABASE_URL.includes('railway.app');
 
 export const pool = new Pool({ 
   connectionString: DATABASE_URL,
-  ssl: false,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 10000, // 10 segundos
   idleTimeoutMillis: 30000, // 30 segundos
   max: 10, // máximo 10 conexões
